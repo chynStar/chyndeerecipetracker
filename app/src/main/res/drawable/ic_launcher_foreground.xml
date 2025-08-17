@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Centered gradient circle that matches welcome screen exactly -->
+    <group android:translateX="54" android:translateY="54">
+        <!-- Gradient Circle Background -->
+        <path
+            android:pathData="M-25,-25 L25,-25 L25,25 L-25,25 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startColor="#FF6B35"
+                    android:endColor="#04A777"
+                    android:type="linear"
+                    android:startX="-25"
+                    android:startY="-25"
+                    android:endX="25"
+                    android:endY="25"/>
+            </aapt:attr>
+        </path>
+
+        <!-- White plate (using path instead of circle) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-12,2 A12,12 0 1,1 12,2 A12,12 0 1,1 -12,2 Z"/>
+
+        <!-- Fork -->
+        <path
+            android:fillColor="#FF6B35"
+            android:pathData="M-6,-6 L-4,-6 L-4,6 L-6,6 Z"/>
+        <path
+            android:fillColor="#FF6B35"
+            android:pathData="M-8,-8 L-8,-2 M-2,-8 L-2,-2"
+            android:strokeWidth="1"
+            android:strokeColor="#FF6B35"/>
+
+        <!-- Knife -->
+        <path
+            android:fillColor="#04A777"
+            android:pathData="M4,-6 L6,-6 L6,6 L4,6 Z"/>
+        <path
+            android:fillColor="#04A777"
+            android:pathData="M4,-6 L8,-4 L8,-2 L4,-4 Z"/>
+    </group>
+</vector>
