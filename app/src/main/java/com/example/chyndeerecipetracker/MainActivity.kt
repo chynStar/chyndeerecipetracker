@@ -57,6 +57,8 @@ import kotlin.collections.toList
 import android.content.Context
 import android.media.MediaPlayer
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Delete
 import java.util.*
 
 
@@ -424,6 +426,7 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            
             TabRow(selectedTabIndex = selectedTabIndex) {
                 Tab(
                     selected = selectedTabIndex == 0,
@@ -646,16 +649,12 @@ fun AddEditRecipeDialog(
     }
 
     // Recipe form states
-    var name by remember { mutableStateOf(recipe?.name ?: "") }
-    var ingredients by remember { mutableStateOf(recipe?.ingredients?.joinToString("\n") ?: "") }
-    var steps by remember { mutableStateOf(recipe?.steps?.joinToString("\n") ?: "") }
-    var cookingTime by remember { mutableStateOf(recipe?.cookingTime?.toString() ?: "") }
-    var servings by remember { mutableStateOf(recipe?.servings?.toString() ?: "") }
-    var selectedTags by remember {
-        mutableStateOf<Set<DietaryTag>>(
-            recipe?.dietaryTags?.toSet() ?: setOf()
-        )
-    }
+    var name by remember(recipe, isOpen) { mutableStateOf(recipe?.name ?: "") }
+    var ingredients by remember(recipe, isOpen) { mutableStateOf(recipe?.ingredients?.joinToString("\n") ?: "") }
+    var steps by remember(recipe, isOpen) { mutableStateOf(recipe?.steps?.joinToString("\n") ?: "") }
+    var cookingTime by remember(recipe, isOpen) { mutableStateOf(recipe?.cookingTime?.toString() ?: "") }
+    var servings by remember(recipe, isOpen) { mutableStateOf(recipe?.servings?.toString() ?: "") }
+    var selectedTags by remember(recipe, isOpen) { mutableStateOf<Set<DietaryTag>>(recipe?.dietaryTags?.toSet() ?: setOf()) }
     var imageUrl by remember { mutableStateOf(recipe?.imageUrl ?: "") }
 
     // Update imageUrl when selectedImageUri changes
@@ -1495,74 +1494,247 @@ fun RecipesTab(
 }
 
 // FIXED: Complete RecipeCard function
+// Updated RecipeCard with Delete functionality
+
 @Composable
 fun RecipeCard(
     recipe: Recipe,
-    cookingHistory: List<CookingEntry>, // Add this parameter
+    cookingHistory: List<CookingEntry>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onCook: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDetails by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { showDetails = true }, // ← ADD CLICK TO SHOW DETAILS
+            .clickable { showDetails = true },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        // ... your existing card content ...
-
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Recipe name, rating, etc.
-            Text(
-                text = recipe.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            // ... rest of your existing card UI ...
-
-            // Action buttons
+            // Recipe Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
-                    onClick = { showDetails = true }, // View Details
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("View")
+                )
+
+                if (recipe.rating > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = recipe.rating.toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Recipe Info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (recipe.cookingTime > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Timer,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${recipe.cookingTime}m",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
+                if (recipe.servings > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.People,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${recipe.servings} servings",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Dietary Tags
+            if (recipe.dietaryTags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(recipe.dietaryTags) { tag ->
+                        AssistChip(
+                            onClick = { },
+                            label = {
+                                Text(
+                                    text = tag.displayName,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = tag.color.copy(alpha = 0.2f),
+                                labelColor = tag.color
+                            ),
+                            modifier = Modifier.height(24.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action Buttons - UPDATED with Delete
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // View Button
+                OutlinedButton(
+                    onClick = { showDetails = true },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Visibility,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("View", style = MaterialTheme.typography.labelMedium)
+                }
+
+                // Edit Button
                 OutlinedButton(
                     onClick = onEdit,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp)
                 ) {
-                    Text("Edit")
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Edit", style = MaterialTheme.typography.labelMedium)
                 }
 
+                // Delete Button - NEW
+                OutlinedButton(
+                    onClick = { showDeleteConfirmation = true },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete", style = MaterialTheme.typography.labelMedium)
+                }
+
+                // Cook Button
                 Button(
                     onClick = onCook,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp)
                 ) {
-                    Text("Cook")
+                    Icon(
+                        Icons.Default.Restaurant,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Cook", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
     }
 
-    // ✅ SHOW YOUR EXISTING RECIPE DETAILS DIALOG
+    // Recipe Details Dialog
     if (showDetails) {
         RecipeDetailsDialog(
             recipe = recipe,
             cookingHistory = cookingHistory.filter { it.recipeId == recipe.id },
             onDismiss = { showDetails = false }
+        )
+    }
+
+    // Delete Confirmation Dialog - NEW
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = {
+                Text(
+                    text = "Delete Recipe",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete \"${recipe.name}\"? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteConfirmation = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
