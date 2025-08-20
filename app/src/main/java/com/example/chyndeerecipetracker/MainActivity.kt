@@ -1248,33 +1248,35 @@ fun AddEditRecipeDialog(
 
                         Button(
                             onClick = {
+                                Log.d("SAVE_FLOW", "1. Dialog save button clicked")
+
                                 val newRecipe = Recipe(
                                     id = recipe?.id ?: UUID.randomUUID().toString(),
                                     name = name,
                                     ingredients = ingredients.split("\n")
                                         .filter { it.isNotBlank() },
                                     steps = steps.split("\n").filter { it.isNotBlank() },
-                                    cookingTime = cookingTime.toIntOrNull()
-                                        ?: 0, // ← CONVERT STRING TO INT
-                                    servings = servings.toIntOrNull()
-                                        ?: 1, // ← CONVERT STRING TO INT
+                                    cookingTime = cookingTime.toIntOrNull() ?: 0,
+                                    servings = servings.toIntOrNull() ?: 1,
                                     rating = recipe?.rating ?: 0f,
                                     dietaryTags = selectedTags.toList(),
-                                    imageUrl = selectedImageUri?.toString() ?: recipe?.imageUrl
-                                    ?: "",
+                                    imageUrl = selectedImageUri?.toString() ?: recipe?.imageUrl ?: "",
                                     createdAt = recipe?.createdAt ?: Date(),
                                     updatedAt = Date()
                                 )
 
-                                // Add sound notification
+                                Log.d("SAVE_FLOW", "2. Recipe created: ${newRecipe.name}")
 
+                                // Add sound notification
                                 if (recipe == null) {
                                     SoundNotificationHelper.playCookingSuccessSound(context)
                                 } else {
                                     SoundNotificationHelper.playSuccessSound(context)
                                 }
 
+                                Log.d("SAVE_FLOW", "3. About to call onSave callback")
                                 onSave(newRecipe)
+                                Log.d("SAVE_FLOW", "4. onSave callback completed")
                             }
                         ) {
                             Text(if (recipe == null) "Add Recipe" else "Update Recipe")
