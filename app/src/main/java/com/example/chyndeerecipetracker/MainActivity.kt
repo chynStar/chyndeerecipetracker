@@ -59,6 +59,25 @@ import android.media.MediaPlayer
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import java.util.Date
 import java.util.*
 
 
@@ -389,8 +408,10 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
     // FIXED: Remove .collectAsState() since your ViewModel uses State, not StateFlow
     val recipes by viewModel.recipes          // ← REMOVE .collectAsState()
     val cookingHistory by viewModel.cookingHistory  // ← REMOVE .collectAsState()
-
-    // ... rest of your MainScreen code remains exactly the same
+    // 🔧 PERFORMANCE FIX: Optimize data checking
+    val hasData = remember(recipes.size, cookingHistory.size) {
+        recipes.isNotEmpty() || cookingHistory.isNotEmpty()
+    }
 
     Scaffold(
         topBar = {
@@ -426,7 +447,111 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            
+
+            // 🎯 REPLACE THIS ENTIRE SECTION WITH OPTIMIZED VERSION ⬇️
+            // OPTIMIZED Recent Activity Section - Prevents ANR
+            if (hasData) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    // Section Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Recent Activity",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        TextButton(
+                            onClick = { selectedTabIndex = 1 }
+                        ) {
+                            Text("View All")
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // OPTIMIZED: Use remember with keys to prevent unnecessary recomposition
+                    val recentData = remember(recipes.size, cookingHistory.size) {
+                        RecentActivityData(
+                            recentRecipes = recipes.sortedByDescending { it.createdAt }.take(2), // Reduced from 3 to 2
+                            recentCooking = cookingHistory.sortedByDescending { it.cookedAt }.take(2), // Reduced from 3 to 2
+                            topRated = recipes.filter { it.rating > 3.5f }.sortedByDescending { it.rating }.take(2) // Reduced from 3 to 2
+                        )
+                    }
+
+                    // Recent Activities List - OPTIMIZED
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        // Recently Added Recipes - OPTIMIZED
+                        if (recentData.recentRecipes.isNotEmpty()) {
+                            item {
+                                OptimizedRecentActivityGroup(
+                                    title = "Recently Added",
+                                    icon = Icons.Default.Add,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    items = recentData.recentRecipes,
+                                    onItemClick = { recipe ->
+                                        recipeToEdit = recipe
+                                        showAddDialog = true
+                                    }
+                                )
+                            }
+                        }
+
+                        // Recently Cooked - OPTIMIZED
+                        if (recentData.recentCooking.isNotEmpty()) {
+                            item {
+                                OptimizedRecentCookingGroup(
+                                    title = "Recently Cooked",
+                                    icon = Icons.Default.Restaurant,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    cookingEntries = recentData.recentCooking,
+                                    recipes = recipes,
+                                    onItemClick = { recipe ->
+                                        recipeToEdit = recipe
+                                        showAddDialog = true
+                                    }
+                                )
+                            }
+                        }
+
+                        // Top Rated - OPTIMIZED
+                        if (recentData.topRated.isNotEmpty()) {
+                            item {
+                                OptimizedRecentActivityGroup(
+                                    title = "Top Rated",
+                                    icon = Icons.Default.Star,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    items = recentData.topRated,
+                                    onItemClick = { recipe ->
+                                        recipeToEdit = recipe
+                                        showAddDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            // 🎯 END OPTIMIZED RECENT ACTIVITY SECTION ⬆️
+
             TabRow(selectedTabIndex = selectedTabIndex) {
                 Tab(
                     selected = selectedTabIndex == 0,
@@ -443,7 +568,7 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
             when (selectedTabIndex) {
                 0 -> RecipesTab(
                     recipes = recipes,
-                    cookingHistory = cookingHistory, // ← ADD THIS LINE
+                    cookingHistory = cookingHistory,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
                     selectedFilters = selectedFilters,
@@ -469,7 +594,6 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
             }
         }
     }
-
 
     // Dialogs
     AddEditRecipeDialog(
@@ -564,6 +688,225 @@ object SoundNotificationHelper {
         }
     }
 }
+
+// OPTIMIZED DATA CLASS
+data class RecentActivityData(
+    val recentRecipes: List<Recipe>,
+    val recentCooking: List<CookingEntry>,
+    val topRated: List<Recipe>
+)
+
+// OPTIMIZED COMPOSABLES - Better Performance
+@Composable
+fun OptimizedRecentActivityGroup(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    items: List<Recipe>,
+    onItemClick: (Recipe) -> Unit
+) {
+    Card(
+        modifier = Modifier.width(180.dp), // Reduced width
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp) // Reduced padding
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp), // Smaller icon
+                    tint = color
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.labelSmall, // Smaller text
+                    fontWeight = FontWeight.Medium,
+                    color = color
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Items - LIMITED TO PREVENT PERFORMANCE ISSUES
+            items.take(2).forEach { recipe -> // Max 2 items per group
+                OptimizedRecipeItem(
+                    recipe = recipe,
+                    onClick = { onItemClick(recipe) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun OptimizedRecentCookingGroup(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    cookingEntries: List<CookingEntry>,
+    recipes: List<Recipe>,
+    onItemClick: (Recipe) -> Unit
+) {
+    Card(
+        modifier = Modifier.width(180.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp)
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = color
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = color
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Cooking Items - OPTIMIZED
+            cookingEntries.take(2).forEach { cookingEntry ->
+                val recipe = recipes.find { it.id == cookingEntry.recipeId }
+                if (recipe != null) {
+                    OptimizedCookingItem(
+                        recipe = recipe,
+                        cookingEntry = cookingEntry,
+                        onClick = { onItemClick(recipe) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OptimizedRecipeItem(
+    recipe: Recipe,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 2.dp), // Reduced padding
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Simplified icon (no image loading to improve performance)
+        Box(
+            modifier = Modifier
+                .size(28.dp) // Smaller size
+                .background(
+                    MaterialTheme.colorScheme.primaryContainer,
+                    RoundedCornerShape(4.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Restaurant,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                recipe.name,
+                style = MaterialTheme.typography.bodySmall, // Smaller text
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                "${recipe.cookingTime}min",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun OptimizedCookingItem(
+    recipe: Recipe,
+    cookingEntry: CookingEntry,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Simple rating indicator
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(
+                    when {
+                        cookingEntry.personalRating >= 4f -> Color(0xFF4CAF50)
+                        cookingEntry.personalRating >= 3f -> Color(0xFFFF9800)
+                        else -> Color(0xFF757575)
+                    },
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                if (cookingEntry.personalRating > 0f) "${cookingEntry.personalRating.toInt()}" else "🍳",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                recipe.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                "⭐${cookingEntry.personalRating}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
 // FIXED: Correct order for cameraLauncher and cameraPermissionLauncher
 
 @Composable
@@ -654,7 +997,7 @@ fun AddEditRecipeDialog(
     var steps by remember(recipe, isOpen) { mutableStateOf(recipe?.steps?.joinToString("\n") ?: "") }
     var cookingTime by remember(recipe, isOpen) { mutableStateOf(recipe?.cookingTime?.toString() ?: "") }
     var servings by remember(recipe, isOpen) { mutableStateOf(recipe?.servings?.toString() ?: "") }
-    var selectedTags by remember(recipe, isOpen) { mutableStateOf<Set<DietaryTag>>(recipe?.dietaryTags?.toSet() ?: setOf()) }
+    var selectedTags by remember(recipe, isOpen) { mutableStateOf(recipe?.dietaryTags?.toSet() ?: setOf()) } // ✅ FULLY FIXED
     var imageUrl by remember { mutableStateOf(recipe?.imageUrl ?: "") }
 
     // Update imageUrl when selectedImageUri changes
@@ -2001,7 +2344,7 @@ fun RecipeDetailsDialog(
 
 @Composable
 fun InfoChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector, // ✅ Clean and simple
     text: String
 ) {
     Row(
@@ -2027,34 +2370,6 @@ fun InfoChip(
             fontWeight = FontWeight.Medium
         )
     }
-}
-
-@Composable
-fun DeleteConfirmationDialog(
-    recipeName: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete Recipe") },
-        text = { Text("Are you sure you want to delete \"$recipeName\"? This action cannot be undone.") },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Delete")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
