@@ -596,6 +596,7 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
     }
 
     // Dialogs
+    // Dialogs
     AddEditRecipeDialog(
         recipe = recipeToEdit,
         isOpen = showAddDialog,
@@ -604,13 +605,17 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
             recipeToEdit = null
         },
         onSave = { recipe ->
+            Log.d("SAVE_FLOW", "5. MainScreen onSave received: ${recipe.name}")
             if (recipeToEdit == null) {
+                Log.d("SAVE_FLOW", "6. Calling viewModel.addRecipe")
                 viewModel.addRecipe(recipe)
             } else {
+                Log.d("SAVE_FLOW", "6. Calling viewModel.updateRecipe")
                 viewModel.updateRecipe(recipe)
             }
             showAddDialog = false
             recipeToEdit = null
+            Log.d("SAVE_FLOW", "7. MainScreen onSave completed")
         }
     )
 
