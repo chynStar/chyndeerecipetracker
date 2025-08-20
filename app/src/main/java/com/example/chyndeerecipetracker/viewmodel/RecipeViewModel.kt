@@ -4,19 +4,10 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.chyndee.chyndeerecipetracker.domain.model.Recipe
 import com.chyndee.chyndeerecipetracker.domain.model.CookingEntry
-import com.chyndee.chyndeerecipetracker.data.repository.RecipeRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 import androidx.compose.runtime.State
 import com.chyndee.chyndeerecipetracker.SoundNotificationHelper
-
 import java.util.*
 
 
