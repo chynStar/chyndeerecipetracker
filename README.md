@@ -12,4 +12,5 @@ Smart dietary preference detection
 Personalized recipe recommendations
 
 ###CookingHistory 📊
+
 Recently added recipe
