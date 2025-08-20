@@ -1,5 +1,6 @@
 package com.chyndee.chyndeerecipetracker.data.repository
 
+import android.util.Log
 import com.chyndee.chyndeerecipetracker.data.local.RecipeDao
 import com.chyndee.chyndeerecipetracker.data.local.CookingEntryDao
 import com.chyndee.chyndeerecipetracker.domain.model.Recipe
@@ -24,14 +25,11 @@ class RecipeRepositoryImpl @Inject constructor(
         recipeDao.updateRecipe(recipe)
     }
 
-    override suspend fun deleteRecipe(recipeId: String) {
-        // Delete the recipe by ID (you may need to add this method to RecipeDao)
-        // For now, assuming you have a deleteRecipeById method
-        recipeDao.deleteRecipeById(recipeId)
-        // Also delete all cooking entries for this recipe
-        cookingEntryDao.deleteCookingEntriesForRecipe(recipeId)
+    override suspend fun deleteRecipe(recipe: Recipe) {
+        Log.d("REPOSITORY", "🗑️ Deleting recipe: ${recipe.name}")
+        recipeDao.deleteRecipe(recipe)  // Pass the whole Recipe object
+        Log.d("REPOSITORY", "✅ Recipe deleted successfully")
     }
-
     override suspend fun getRecipeById(id: String): Recipe? {
         return recipeDao.getRecipeById(id)
     }

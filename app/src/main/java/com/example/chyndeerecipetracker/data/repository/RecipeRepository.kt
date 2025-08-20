@@ -5,10 +5,11 @@ import com.chyndee.chyndeerecipetracker.domain.model.CookingEntry
 import kotlinx.coroutines.flow.Flow
 
 interface RecipeRepository {
+
     // Recipe methods
     suspend fun insertRecipe(recipe: Recipe)
     suspend fun updateRecipe(recipe: Recipe)
-    suspend fun deleteRecipe(recipeId: String)
+    suspend fun deleteRecipe(recipe: Recipe)
     suspend fun getRecipeById(id: String): Recipe?
     fun getAllRecipes(): Flow<List<Recipe>>
 
@@ -19,4 +20,6 @@ interface RecipeRepository {
     suspend fun getCookingEntryById(id: String): CookingEntry?
     fun getAllCookingEntries(): Flow<List<CookingEntry>>
     fun getCookingEntriesForRecipe(recipeId: String): Flow<List<CookingEntry>>
+
+
 }

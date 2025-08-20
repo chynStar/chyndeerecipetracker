@@ -408,6 +408,8 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
     // FIXED: Remove .collectAsState() since your ViewModel uses State, not StateFlow
     val recipes by viewModel.recipes          // ← REMOVE .collectAsState()
     val cookingHistory by viewModel.cookingHistory  // ← REMOVE .collectAsState()
+    val context = LocalContext.current  // ✅ Add this line
+
     // 🔧 PERFORMANCE FIX: Optimize data checking
     val hasData = remember(recipes.size, cookingHistory.size) {
         recipes.isNotEmpty() || cookingHistory.isNotEmpty()
@@ -608,10 +610,10 @@ fun MainScreen(viewModel: RecipeViewModel = viewModel()) {
             Log.d("SAVE_FLOW", "5. MainScreen onSave received: ${recipe.name}")
             if (recipeToEdit == null) {
                 Log.d("SAVE_FLOW", "6. Calling viewModel.addRecipe")
-                viewModel.addRecipe(recipe)
+                viewModel.addRecipe(recipe, context)  // ✅ Add context parameter
             } else {
                 Log.d("SAVE_FLOW", "6. Calling viewModel.updateRecipe")
-                viewModel.updateRecipe(recipe)
+                viewModel.updateRecipe(recipe, context)  // ✅ Add context parameter
             }
             showAddDialog = false
             recipeToEdit = null
